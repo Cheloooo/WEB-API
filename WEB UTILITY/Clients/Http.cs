@@ -164,7 +164,7 @@ public static class Http
     {
         var request = new HttpRequestMessage(HttpMethod.Put, uri)
         {
-            Content = new StringContent(JsonSerializer.Serialize(body), Encoding.UTF8, "application/json");
+            Content = new StringContent(JsonSerializer.Serialize(body), Encoding.UTF8, "application/json")
         };
         request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
         request.AddHeaders(headers);

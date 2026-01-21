@@ -11,5 +11,5 @@ public class Auth : IEntity
     public string Password { get; set; }
     public DateTime LastLogin { get; set; }
     public User User { get; set; }
-    public object? UserId { get; set; }
+    public Guid UserId { get; set; }
 }

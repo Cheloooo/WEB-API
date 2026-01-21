@@ -4,19 +4,15 @@ using WEB_DOMAIN.Config.Generic;
 using WEB_DOMAIN.Entity;
 using WEB_DOMAIN.Entity.Generic;
 using WEB_DOMAIN.Interface;
-using WEB.DOMAIN.Config.Generic;
-using WEB.DOMAIN.Entity;
-using WEB.DOMAIN.Entity.Generic;
-using WEB.DOMAIN.Interface;
 
 namespace WEB.DAL.AppDbContext;
 
 public class WebApiDbContext : DbContext
 {
     //run this command from the root folder
-    //dotnet ef migrations add initialDB --project WEB.DAL --startup-project WEB.API
-    //dotnet ef database update --project WEB.DAL --startup-project WEB.API 
-    public WebApiDbContext(DbContextOptions<WebApiDbContext> options) : base(options) {}
+    //dotnet ef migrations add initialDB --project "WEB.DAL" --startup-project "WEB API"
+    //dotnet ef database update --project "WEB.DAL" --startup-project "WEB API"
+    public WebApiDbContext(DbContextOptions<WebApiDbContext> options) : base(options) { }
 
     //
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -51,7 +47,7 @@ public class WebApiDbContext : DbContext
             method.Invoke(modelBuilder, new[] { Activator.CreateInstance(config.Type) });
         }
         #endregion
-        
+
         base.OnModelCreating(modelBuilder);
         #region Defualt Value
 
@@ -71,5 +67,6 @@ public class WebApiDbContext : DbContext
                 RoleName = "Admin"
             }
             );
+        #endregion
     }
 }

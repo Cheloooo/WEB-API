@@ -1,0 +1,128 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Security.Cryptography;
+using System.Text;
+using System.Threading.Tasks;
+using WEB_UTILITY.Logger;
+using WEB_UTILITY.Security.ISecurity;
+
+namespace WEB_UTILITY.Security
+{
+    public class RsaEncryptionService : IRsaEncryptionService
+    {
+        private RSA _rsa;
+        private readonly RSASignaturePadding _defaultPadding = RSASignaturePadding.Pss;//one of the important padding schemes for RSA signatures
+        private readonly IAppLogger<RsaEncryptionService> _logger;
+
+        public RsaEncryptionService(RsaKeyManager keyManager, IAppLogger<RsaEncryptionService> logger)
+        {
+            _rsa = keyManager?.Rsa ?? throw new ArgumentNullException(nameof(keyManager), "Key manager cannot be null.");
+            _logger = logger;
+        }
+        public string Decrypt(string base64EncryptedText)
+        {
+            return ExecuteCrypto(() =>
+            {
+                byte[] encrypted = FromBase64(base64EncryptedText);
+                byte[] decrypted = _rsa.Decrypt(encrypted, RSAEncryptionPadding.OaepSHA256);
+
+                return ToString(decrypted);
+            }, "Decryption failed");
+        }
+
+        public string DecryptWithSignature(string base64EncryptedText, string signature)
+        {
+            return ExecuteCrypto(() =>
+            {
+                byte[] encrypted = FromBase64(base64EncryptedText);
+                byte[] decrypted = _rsa.Decrypt(encrypted, RSAEncryptionPadding.OaepSHA256);
+                string plainText = ToString(decrypted);
+
+                if (!VerifySignature(plainText, signature))
+                {
+                    _logger.LogError(new CryptographicException("Signature verification failed."), "Invalid signature");
+                    throw new CryptographicException("Signature verification failed.");
+                }
+
+                return plainText;
+            }, "Decryption with signature failed.");
+        }
+
+        public string Encrypt(string plainText)
+        {
+            return ExecuteCrypto(() =>
+            {
+                byte[] data = ToBytes(plainText);
+                byte[] encrypted = _rsa.Encrypt(data, RSAEncryptionPadding.OaepSHA256);//most use and follows best practices
+                return ToBase64(encrypted);
+            }, "Encryption failed.");
+        }
+
+        public (string encrypted, string signature) EncryptWithSignature(string plainText)
+        {
+            return ExecuteCrypto(() =>
+             {
+                 byte[] data = ToBytes(plainText);
+                 byte[] encrypted = _rsa.Encrypt(data, RSAEncryptionPadding.OaepSHA256);
+                 string signature = SignData(plainText);
+                 return (ToBase64(encrypted), signature);
+             }, "Encryption with signature failed");
+        }
+
+        private string SignData(string plainText)
+        {
+            return ExecuteCrypto(() =>
+            {
+                byte[] data = ToBytes(plainText);
+                byte[] signature = _rsa.SignData(data, HashAlgorithmName.SHA256, _defaultPadding);
+                return ToBase64(signature);
+            }, "Signing data failed.");
+
+        }
+        private bool VerifySignature(string plainText, string base64Signature)
+        {
+            try
+            {
+                byte[] data = ToBytes(plainText);
+                byte[] signature = FromBase64(base64Signature);
+                return _rsa.VerifyData(data, signature, HashAlgorithmName.SHA256, _defaultPadding);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Signature verification failed: {ex.Message}");
+                return false;
+            }
+        }
+
+
+        private static byte[] ToBytes(string input) => Encoding.UTF8.GetBytes(input);
+        private static string ToString(byte[] data) => Encoding.UTF8.GetString(data);
+        private static string ToBase64(byte[] data) => Convert.ToBase64String(data);
+        private static byte[] FromBase64(string base64) => Convert.FromBase64String(base64);
+
+        private T ExecuteCrypto<T>(Func<T> action, string errorMessage)
+        {
+            //central error handling for cryptographic operations
+            try
+            {
+                return action();
+            }
+            catch (FormatException ex)
+            {
+                _logger.LogError(ex, $"Invalid input format: {ex.Message}");
+                throw new ArgumentException("Invalid input format.", ex);
+            }
+            catch (CryptographicException ex)
+            {
+                _logger.LogError(ex, $"Unexpected error: {ex.Message}");
+                throw;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Unexpected error: {ex.Message}");
+                throw new CryptographicException(errorMessage, ex);
+            }
+        }
+    }
+}

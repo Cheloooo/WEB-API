@@ -22,7 +22,7 @@ public class BaseEntityRepository<T> : IBaseEntityRepository<T> where T : BaseEn
         _dbSet.Update(entity);
     }
 
-    public Task softDeleteListAsync(IEnumerable<Guid> ids, CancellationToken ct = default)
+    public async Task softDeleteListAsync(IEnumerable<Guid> ids, CancellationToken ct = default)
     {
         if (ids == null || !ids.Any())
             return;

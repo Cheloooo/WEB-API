@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Linq.Expressions;
 using System.Reflection;
 using Microsoft.EntityFrameworkCore;
@@ -17,7 +18,7 @@ public class Repository<T> : IRepository<T> where T : class, IEntity
         _dbSet = _context.Set<T>();
     }
     public async Task<IEnumerable<T>> GetAllAsync(Expression<Func<T, bool>>? predicate = null, CancellationToken ct = default, bool asNoTracking = true,
-        params string[]? ignoreProperties)
+        params string[]? includePaths)
     {
         IQueryable<T> query = _dbSet;
         if (asNoTracking)
@@ -37,7 +38,7 @@ public class Repository<T> : IRepository<T> where T : class, IEntity
         return await query.ToListAsync(ct);
     }
 
-    public async Task<T?> GetByIdAsync(Guid id, CancellationToken ct = default, params string[]? ignoreProperties)
+    public async Task<T?> GetByIdAsync(Guid id, CancellationToken ct = default, params string[]? includePaths)
     {
         IQueryable<T> query = _dbSet.AsNoTracking();
         if (includePaths?.Length > 0)
@@ -62,54 +63,60 @@ public class Repository<T> : IRepository<T> where T : class, IEntity
     public async Task AddRangeAsync(IEnumerable<T> entities, CancellationToken ct = default) =>
         _dbSet.AddRangeAsync(entities, ct);
 
-    public void Update(T entity, Expression<Func<T, object?>> data)
+    public void Update(T entity, Expression<Func<T, object?>>[] data)
     {
         _dbSet.Attach(entity);
-        _context.Entry(entity).State = EntityState.Modifies;
+        _context.Entry(entity).State = EntityState.Modified;
 
         foreach (var nav in data)
         {
-            var memberExpression = nav.Body as MemberExpression ?? (nav.Body is Unaryexpression unary ? unary.Operand as MemberExpression : null);
+            var memberExpression = nav.Body as MemberExpression ?? (nav.Body is UnaryExpression unary ? unary.Operand as MemberExpression : null);
             if (memberExpression == null) continue;
             var propertyInfor = memberExpression.Member as PropertyInfo;
-            if (property == null) continue;
+            if (propertyInfor == null) continue;
 
             var value = propertyInfor.GetValue(entity);
 
-            if(value != null)
+            if (value != null)
             {
-                var propertyType = propertyInfo.propertyType;
-                if (typeof(IEnumerable).IsAssignableFrom(propertyType) && propertyType != typeof(string)
+                var propertyType = propertyInfor.PropertyType;
+                if (typeof(IEnumerable).IsAssignableFrom(propertyType) && propertyType != typeof(string))
                 {
                     var collection = value as IEnumerable;
-                    if (collection != null){
-                        foreach (var item in collection){
+                    if (collection != null)
+                    {
+                        foreach (var item in collection)
+                        {
                             var itemType = item.GetType();
                             var idProperty = itemType.GetProperty("Id");
-                            if (idProperty != null){
+                            if (idProperty != null)
+                            {
                                 var idValue = idProperty.GetValue(item);
-                                if (idValue == null || (idValue is Guid guid && guid == Guid.Empty)){
-                                     _context.Entry(item).State = EntityState.Added;
-                                 }
-                                 else
+                                if (idValue == null || (idValue is Guid guid && guid == Guid.Empty))
+                                {
+                                    _context.Entry(item).State = EntityState.Added;
+                                }
+                                else
                                 {
                                     _context.Entry(item).State = EntityState.Modified;
-                                 }         
-                          }
-                          else {
-                            _context.Entry(item).State = EntityState.Modified;
-                          }
+                                }
+                            }
+                            else
+                            {
+                                _context.Entry(item).State = EntityState.Modified;
+                            }
                         }
                     }
                     else
-                     {
-                    _context.Entry(entity).Reference(nav).TargetEntry.State = EntityState.Modifies;
-                     }
+                    {
+                        _context.Entry(entity).Reference(nav).TargetEntry.State = EntityState.Modified;
+                    }
+                }
             }
         }
     }
 
-    public void Delete(T entity)=> _dbSet.Remove(entity)
+    public void Delete(T entity) => _dbSet.Remove(entity);
 
     public async Task DeleteRangeAsync(IEnumerable<Guid> ids, CancellationToken ct = default)
     {
@@ -129,5 +136,10 @@ public class Repository<T> : IRepository<T> where T : class, IEntity
     public IQueryable<T> Query(bool asNoTracking = true)
     {
        return asNoTracking ? _dbSet.AsNoTracking() : _dbSet;
+    }
+
+    public void Update(T entity, Expression<Func<T, object?>> data)
+    {
+        throw new NotImplementedException();
     }
 }

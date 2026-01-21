@@ -8,17 +8,24 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <PackageReference Include="AutoMapper" Version="15.0.1" />
+      <PackageReference Include="AutoMapper" Version="14.0.0" />
       <PackageReference Include="FluentValidation" Version="12.0.0" />
       <PackageReference Include="FluentValidation.AspNetCore" Version="11.3.1" />
       <PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.10" />
-      <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="9.0.9" />
-      <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.10" />
+      <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="10.0.0" />
+      <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.0" />
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\WEB DOMAIN\WEB DOMAIN.csproj" />
+      <ProjectReference Include="..\WEB DOMAIN\WEB.DOMAIN.csproj" />
+      <ProjectReference Include="..\WEB UTILITY\WEB.UTILITY.csproj" />
       <ProjectReference Include="..\WEB.DAL\WEB.DAL.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Folder Include="DTO\Authentication\" />
+      <Folder Include="IService\IAuthentication\" />
+      <Folder Include="Validations\" />
     </ItemGroup>
 
 </Project>

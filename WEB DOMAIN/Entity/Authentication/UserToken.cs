@@ -12,6 +12,7 @@ public class UserToken: IEntity
     public DateTime RefreshTokenExpiry { get; set; }
     public string AccessTokenJti { get; set; }
     public DateTime IssuedAt { get; set; }
+    public DateTime? RevokedAt { get; set; }
     public bool IsRevoked { get; set; }
     public string DeviceInfo { get; set; }
     public string? IpAddress { get; set; }

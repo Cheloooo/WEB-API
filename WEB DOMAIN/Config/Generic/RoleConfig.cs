@@ -8,7 +8,7 @@ public class RoleConfig : IEntityTypeConfiguration<Role>
 {
     public void Configure(EntityTypeBuilder<Role> builder)
     {
-        builder.HasKey(b => b.RoleID);
+        builder.HasKey(b => b.RoleId);
         builder.Property(r => r.RoleName)
             .IsRequired()
             .HasMaxLength(50);
