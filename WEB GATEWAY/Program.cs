@@ -1,43 +1,52 @@
-using Microsoft.AspNetCore.OpenApi;
+using Microsoft.VisualBasic;
+using Serilog;
+using WEB_GATEWAY;
+using WEB_GATEWAY.Models;
+using WEB_UTILITY.Logger;
+using Yarp.ReverseProxy.Transforms;
+using Constants = WEB_GATEWAY.Constants;
+
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddOpenApi();
-
-var app = builder.Build();
-
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
+var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>();
+builder.Services.AddCors(options =>
 {
-    app.MapOpenApi();
-}
-
-app.UseHttpsRedirection();
-
-var summaries = new[]
-{
-    "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-};
-
-app.MapGet("/weatherforecast", () =>
+   options.AddPolicy("AllowSpecificOrigins", policy =>
     {
-        var forecast = Enumerable.Range(1, 5).Select(index =>
-                new WeatherForecast
-                (
-                    DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-                    Random.Shared.Next(-20, 55),
-                    summaries[Random.Shared.Next(summaries.Length)]
-                ))
-            .ToArray();
-        return forecast;
-    })
-    .WithName("GetWeatherForecast");
+        policy.WithOrigins(allowedOrigins)
+            .AllowAnyHeader()
+            .AllowAnyMethod();
+    });
+});
 
-app.Run();
+builder.Configuration.AddEnvironmentVariables();
+builder.Configuration.SetBasePath(Directory.GetCurrentDirectory()).AddJsonFile("appsettin.json", optional: true, reloadOnChange: true);
+builder.Configuration.SetBasePath(Directory.GetCurrentDirectory()).AddJsonFile("appsettings.{builder.Environment.EnvirontmentName}.json", optional: true, reloadOnChange: true);
 
-record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
-{
-    public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
-}
+Log.Logger = new LoggerConfiguration().ReadFrom.Configuration(builder.Configuration).Enrich.FromLogContext().CreateLogger();
+
+builder.Host.UseSerilog();
+
+Log.ForContext<Program>().Information("API Gateway Initialized in {Environment} environment {Date} on {Urls}",
+    builder.Environment.EnvironmentName, 
+    DateTime.UtcNow.ToUniversalTime(), 
+    builder.Configuration.GetValue<string>("ASPNETCORE_URLS") ?? "unset"
+    );
+
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddSingleton(typeof(IAppLogger<>), typeof(AppLogger<>));
+
+Log.ForContext<Program>().Information("Setting up Reverse Proxy");
+
+
+//gateway settings
+
+builder.Services.Configure<ReverseProxy>(builder.Configuration.GetSection(Constants.REVERSE_PROXY));
+builder.Services.AddReverseProxy().LoadFromConfig(builder.Configuration.GetSection(Constants.REVERSE_PROXY))
+    .AddTransforms(builderContext =>
+    {
+        builderContext.AddRequestTransform(async transformContext =>
+        {
+
+        });
+    });

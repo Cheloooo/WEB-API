@@ -1,12 +1,19 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using FluentValidation;
+using FluentValidation.AspNetCore;
+using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using WEB.DAL;
 using WEB.DAL.AppDbContext;
 using WEB.DAL.Repository;
+using WEB_DOMAIN.Config.Authentication;
 using WEB_DOMAIN.Interface;
+using WEB_SERVICES.DTO.Generic;
 using WEB_SERVICES.MappingProfile.Authentication;
 using WEB_SERVICES.MappingProfile.Generic;
+using WEB_SERVICES.Validations.Authentication;
+using WEB_SERVICES.Validations.Generic;
 using WEB_UTILITY.Logger;
 using WEB_UTILITY.Security;
 using WEB_UTILITY.Security.ISecurity;
@@ -42,6 +49,18 @@ public static class ServiceCollectionExtensions
         services.AddTransient<GetSessionResolver>();
         return services;
 
+    }
+    
+    public static IServiceCollection AddValidatorSerices(this IServiceCollection services)
+    {
+        // Register validators here
+        // services.AddTransient<IValidator<YourDto>, YourDtoValidator>();
+        services.AddFluentValidationClientsideAdapters();
+        services.AddValidatorsFromAssemblyContaining<AuthDTOValidator>();
+        services.AddValidatorsFromAssemblyContaining<UserDtoValidator>();
+        services.AddScoped<IValidator<UserDto>, UserDtoValidator>();
+
+        return services;
     }
     public static IServiceCollection AddDataAccess(this IServiceCollection services, Action<DbContextOptionsBuilder> optionsAction)
 	{

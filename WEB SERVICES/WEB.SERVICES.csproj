@@ -25,7 +25,6 @@
     <ItemGroup>
       <Folder Include="DTO\Authentication\" />
       <Folder Include="IService\IAuthentication\" />
-      <Folder Include="Validations\" />
     </ItemGroup>
 
 </Project>
